@@ -30,8 +30,6 @@ import java.util.List;
 public class RideActivity extends AppCompatActivity {
 
     public GPSTracker gpsTracker;
-    public enum GoodType{
-         ELECTRICAL_ELECTRONICS, FURNITURE, TIMBER_PLYWOOD, TEXTILE, PHARMACY, FOOD, CHEMICALS, PLASTIC
 
     private ParseObject request;
 
@@ -72,6 +70,7 @@ public class RideActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+    }
 
     void startGPSService()
     {
@@ -92,9 +91,6 @@ public class RideActivity extends AppCompatActivity {
         }
     }
 
-    void getRequestData()
-    {
-    }
 
     void getRequestData() {
         Intent intent = getIntent();
