@@ -143,6 +143,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void onAccept(View view)
     {
+        myTimer.cancel();
         object.put("driverId", "myId");
         object.put("status", "assigned");
         object.saveInBackground(new SaveCallback() {
@@ -150,7 +151,7 @@ public class MainActivity extends AppCompatActivity {
             public void done(ParseException e) {
                 if(e!= null)
                 {
-                    showToast("Error! Please reconnect and try again");
+                    showToast(e.getMessage());
                     return;
                 }
                 goToRideActivity();

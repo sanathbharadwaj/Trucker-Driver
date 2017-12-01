@@ -7,10 +7,13 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.parse.FindCallback;
 import com.parse.GetCallback;
 import com.parse.ParseException;
 import com.parse.ParseObject;
 import com.parse.ParseQuery;
+
+import java.util.List;
 
 public class RideActivity extends AppCompatActivity {
     public enum GoodType{
@@ -39,7 +42,7 @@ public class RideActivity extends AppCompatActivity {
             public void done(ParseObject object, ParseException e) {
                 if(e != null)
                 {
-                    showToast("Error retrieving data, please connect to the internet and restart");
+                    showToast(e.getMessage());
                     return;
                 }
 
@@ -72,6 +75,8 @@ public class RideActivity extends AppCompatActivity {
             case PLASTIC: return "Plastic/Rubber";
             default: return "Not Specified";
         }
+
+
     }
 
     String getPaymentMode(PaymentMode mode)
