@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.harsha.truckerdriver">
 
+    <uses-permission
+        android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:maxSdkVersion="22" />
     <application
         android:name=".TruckerDriver"
         android:allowBackup="true"
