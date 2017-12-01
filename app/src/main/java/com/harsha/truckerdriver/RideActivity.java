@@ -34,7 +34,7 @@ public class RideActivity extends AppCompatActivity {
         String requestId = intent.getStringExtra("requestId");
         ParseQuery query = new ParseQuery("Request");
         query.whereEqualTo("objectId", requestId);
-        query.getInBackground(requestId, new GetCallback() {
+        query.getInBackground(requestId, new GetCallback<ParseObject>() {
             @Override
             public void done(ParseObject object, ParseException e) {
                 if(e != null)

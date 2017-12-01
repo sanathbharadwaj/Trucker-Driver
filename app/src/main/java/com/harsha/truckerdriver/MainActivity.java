@@ -143,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void onAccept(View view)
     {
-        object.put("driverId", ParseUser.getCurrentUser().getObjectId());
+        object.put("driverId", "myId");
         object.put("status", "assigned");
         object.saveInBackground(new SaveCallback() {
             @Override
