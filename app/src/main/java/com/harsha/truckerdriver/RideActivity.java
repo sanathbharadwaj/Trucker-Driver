@@ -3,7 +3,9 @@ package com.harsha.truckerdriver;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Location;
 import android.os.Build;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.location.Address;
@@ -12,6 +14,7 @@ import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -23,6 +26,8 @@ import com.parse.ParseException;
 import com.parse.ParseGeoPoint;
 import com.parse.ParseObject;
 import com.parse.ParseQuery;
+import com.parse.ParseUser;
+import com.parse.SaveCallback;
 
 import java.io.IOException;
 import java.util.List;
@@ -30,8 +35,11 @@ import java.util.List;
 public class RideActivity extends AppCompatActivity {
 
     public GPSTracker gpsTracker;
-
     private ParseObject request;
+    private ImageButton navButton;
+    private ParseObject driver;
+    private Button rightButton;
+    private LatLng navLatLng;
 
     public enum GoodType {
         ELECTRICAL_ELECTRONICS, FURNITURE, TIMBER_PLYWOOD, TEXTILE, PHARMACY, FOOD, CHEMICALS, PLASTIC
@@ -41,36 +49,51 @@ public class RideActivity extends AppCompatActivity {
         CASH, PAYTM, CREDIT_CARD
      }
 
+    public enum Status{
+        ACCEPTED, ASSIGNED, ARRIVED, STARTED, FINISHED, CANCELED
+    }
+
+    Status status = Status.ASSIGNED;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        final String phno = "tel:07204326536";
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ride);
         getRequestData();
+        startGPSService();
+    }
 
+
+    void initializeButtonClickListeners()
+    {
+        ParseGeoPoint point = request.getParseGeoPoint("location");
+        navLatLng = new LatLng(point.getLatitude(), point.getLongitude());
+        final String phoneNumber = "tel:07204326536";
         ImageButton btn = (ImageButton) findViewById(R.id.ride_call);
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
                 Intent intent = new Intent(Intent.ACTION_DIAL);
-                intent.setData(Uri.parse(phno));
+                intent.setData(Uri.parse(phoneNumber));
                 startActivity(intent);
             }
         });
-        ImageButton btn1 = (ImageButton) findViewById(R.id.ride_nav);
-        btn1.setOnClickListener(new View.OnClickListener() {
+        navButton = (ImageButton) findViewById(R.id.ride_nav);
+        navButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                double latitude = 13.018912;
-                double longitude = 76.104395;
-                ParseGeoPoint x = request.getParseGeoPoint("location");
+                //ParseGeoPoint x = request.getParseGeoPoint("location");
                 Intent intent = new Intent(android.content.Intent.ACTION_VIEW,
-                        Uri.parse("http://maps.google.com/maps?daddr=" + x.getLatitude() + "," + x.getLongitude()));
+                        Uri.parse("http://maps.google.com/maps?daddr=" + navLatLng.latitude + "," + navLatLng.longitude));
                 startActivity(intent);
             }
         });
+
+
     }
+
+
 
     void startGPSService()
     {
@@ -78,8 +101,10 @@ public class RideActivity extends AppCompatActivity {
         {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
         }
-        else
+        else {
             gpsTracker = new GPSTracker(this);
+            sendMyLocation();
+        }
 
     }
 
@@ -88,7 +113,147 @@ public class RideActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             gpsTracker = new GPSTracker(this);
+            sendMyLocation();
         }
+    }
+
+    void sendMyLocation()
+    {
+        ParseQuery query = new ParseQuery("Driver");
+        query.whereEqualTo("username", ParseUser.getCurrentUser().getUsername());
+        query.setLimit(1);
+        query.findInBackground(new FindCallback<ParseObject>() {
+            @Override
+            public void done(List<ParseObject> objects, ParseException e) {
+                if(e!= null)
+                {
+                    sendMyLocation();
+                    return;
+                }
+                driver = objects.get(0);
+                final Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        pushLocation();
+                        handler.postDelayed(this, 15000);
+                    }
+                }, 15000);
+            }
+
+        });
+        final Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                pushLocation();
+                handler.postDelayed(this, 15000);
+            }
+        }, 15000);
+    }
+
+    void pushLocation()
+    {
+        if(driver == null) return;
+        Location location = gpsTracker.getLocation();
+        if(location == null)
+            return;
+        ParseGeoPoint point = new ParseGeoPoint(location.getLatitude(), location.getLongitude());
+        driver.put("driverLocation", point);
+        driver.saveInBackground();
+    }
+
+    public void arrived(View view)
+    {
+        showToast("Test : arrived");
+        rightButton = (Button)view;
+        request.put("status", "arrived");
+        request.saveInBackground(new SaveCallback() {
+            @Override
+            public void done(ParseException e) {
+                if(e != null)
+                {
+                    showToast("Error please try again!");
+                    return;
+                }
+                status = Status.ARRIVED;
+                rightButton.setText("Start Ride");
+                rightButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        startRide();
+                    }
+                });
+            }
+        });
+    }
+
+    void startRide()
+    {
+        request.put("status", "started");
+        request.saveInBackground(new SaveCallback() {
+            @Override
+            public void done(ParseException e) {
+                if (e != null)
+                {
+                    showToast("Error please try again");
+                    return;
+                }
+                navLatLng = getDestination(request.getString("destination"));
+                rightButton.setText("End Ride");
+                status = Status.STARTED;
+                rightButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                       finishRide();
+                    }
+                });
+            }
+        });
+    }
+
+    @Override
+    public void onBackPressed()
+    {
+        //Do nothing
+    }
+
+    public void cancelRide(View view)
+    {
+        request.put("status", "cancelled");
+        request.saveInBackground(new SaveCallback() {
+            @Override
+            public void done(ParseException e) {
+                if(e!=null)
+                {
+                    showToast("Error please try again");
+                    return;
+                }
+                showToast("Ride had been cancelled");
+                status = Status.CANCELED;
+                Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+                startActivity(intent);
+                finish();
+            }
+        });
+    }
+
+
+    void finishRide(){
+        request.put("status", "finished");
+        request.saveInBackground(new SaveCallback() {
+            @Override
+            public void done(ParseException e) {
+                if(e!= null)
+                {
+                    showToast("Error please try again");
+                    return;
+                }
+                status = Status.FINISHED;
+                Intent intent = new Intent(getApplicationContext(), RideFinishedActivity.class);
+                startActivity(intent);
+            }
+        });
     }
 
 
@@ -105,6 +270,7 @@ public class RideActivity extends AppCompatActivity {
                     return;
                 }
                 request = object;
+                initializeButtonClickListeners();
                 displayData();
             }
 

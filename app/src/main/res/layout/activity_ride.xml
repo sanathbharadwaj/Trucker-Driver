@@ -91,8 +91,9 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="#f0f000"
+        android:onClick="arrived"
         android:padding="-2dp"
-        android:text="Start Ride"
+        android:text="Arrived"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="@+id/guideline" />
@@ -102,6 +103,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="#fc0000"
+        android:onClick="cancelRide"
         android:padding="0dp"
         android:text="Cancel Ride"
         app:layout_constraintBottom_toBottomOf="parent"

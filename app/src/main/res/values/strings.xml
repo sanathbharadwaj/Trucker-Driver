@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">TruckerDriver</string>
+    <string name="title_activity_registration">RegistrationActivity</string>
 </resources>

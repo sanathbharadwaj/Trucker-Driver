@@ -2,9 +2,26 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.harsha.truckerdriver">
 
-    <uses-permission
-        android:name="android.permission.ACCESS_FINE_LOCATION"
-        android:maxSdkVersion="22" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
+    <!--
+    GET_ACCOUNTS is only required for GCM on devices running Android lower than
+    4.0.4. You may leave out this permission if you are targetting 4.0.4+.
+    -->
+    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
+
+    <permission
+        android:name="com.harsha.truckerdriver.permission.C2D_MESSAGE"
+        android:protectionLevel="signature" />
+
+    <uses-permission android:name="com.harsha.truckerdriver.permission.C2D_MESSAGE" />
+
+
     <application
         android:name=".TruckerDriver"
         android:allowBackup="true"
@@ -20,7 +37,37 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".RideActivity"></activity>
+        <activity android:name=".RideActivity" />
+        <activity android:name=".RegistrationActivity" />
+        <activity android:name=".RideFinishedActivity"></activity>
+
+        <service android:name="com.parse.PushService" />
+        <receiver android:name="com.parse.ParsePushBroadcastReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.parse.push.intent.RECEIVE" />
+                <action android:name="com.parse.push.intent.DELETE" />
+                <action android:name="com.parse.push.intent.OPEN" />
+            </intent-filter>
+        </receiver>
+        <receiver android:name="com.parse.GcmBroadcastReceiver"
+            android:permission="com.google.android.c2dm.permission.SEND">
+            <intent-filter>
+                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+                <action android:name="com.google.android.c2dm.intent.REGISTRATION" />
+
+                <!--
+                IMPORTANT: Change "com.parse.starter" to match your app's package name.
+                -->
+                <category android:name="com.harsha.truckerdriver" />
+            </intent-filter>
+        </receiver>
+
+        <!--
+        IMPORTANT: Change "YOUR_SENDER_ID" to your GCM Sender Id.
+        -->
+        <meta-data android:name="com.parse.push.gcm_sender_id"
+            android:value="id:492871431831" />;
     </application>
 
 </manifest>

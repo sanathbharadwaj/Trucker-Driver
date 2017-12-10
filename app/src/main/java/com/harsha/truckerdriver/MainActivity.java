@@ -144,7 +144,7 @@ public class MainActivity extends AppCompatActivity {
     public void onAccept(View view)
     {
         myTimer.cancel();
-        object.put("driverId", "myId");
+        object.put("driverId", ParseUser.getCurrentUser().getObjectId());
         object.put("status", "assigned");
         object.saveInBackground(new SaveCallback() {
             @Override
