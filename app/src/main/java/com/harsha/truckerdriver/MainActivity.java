@@ -1,6 +1,8 @@
 package com.harsha.truckerdriver;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.support.constraint.ConstraintLayout;
@@ -9,12 +11,15 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.parse.FindCallback;
+import com.parse.GetDataCallback;
 import com.parse.ParseException;
+import com.parse.ParseFile;
 import com.parse.ParseObject;
 import com.parse.ParseQuery;
 import com.parse.ParseUser;
@@ -32,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView timeLeft;
     boolean popupExists = false;
     private ParseObject object;
+    ParseObject driver;
 
 
     @Override
@@ -39,8 +45,61 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         noDataLoading = true;
+        loadDriverData();
         checkingForRequests();
 
+    }
+
+    void loadDriverData()
+    {
+        ParseQuery query = new ParseQuery("Driver");
+        query.whereEqualTo("username", ParseUser.getCurrentUser().getUsername());
+        query.findInBackground(new FindCallback<ParseObject>() {
+            @Override
+            public void done(List<ParseObject> objects, ParseException e) {
+                if(e!= null){
+                    showToast("Failed to load driver data");
+                    return;
+                }
+                driver = objects.get(0);
+                updateDriverUI();
+            }
+        });
+    }
+
+    void updateDriverUI()
+    {
+        getTextView(R.id.main_name).setText(driver.getString("username"));
+        getTextView(R.id.car_details).setText(driver.getString("vehicleName") + "|" + driver.getString("vehicleNumber"));
+        getDriverImage();
+    }
+
+    void getDriverImage()
+    {
+        ParseFile file = (ParseFile)driver.get("profilePic");
+        file.getDataInBackground(new GetDataCallback() {
+            @Override
+            public void done(byte[] data, ParseException e) {
+                if(e != null)
+                {
+                    showToast("Error retrieving driver image");
+                    return;
+                }
+                setDriverImageView(data);
+            }
+        });
+    }
+
+    void setDriverImageView(byte[] data)
+    {
+        Bitmap bitmap = BitmapFactory.decodeByteArray(data,0,data.length);
+        ImageView imageView = (ImageView) findViewById(R.id.circleImageView2);
+        imageView.setImageBitmap(bitmap);
+    }
+
+    TextView getTextView(int id)
+    {
+        return (TextView)findViewById(id);
     }
 
     void checkingForRequests()
@@ -63,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
         if(date != null)
         query.whereGreaterThan("updatedAt", date);
         query.whereEqualTo("status", "accepted");
-        query.orderByAscending("updatedAt");
+        query.orderByDescending("updatedAt");
         query.setLimit(1);
         query.findInBackground(new FindCallback<ParseObject>() {
             @Override
@@ -143,8 +202,9 @@ public class MainActivity extends AppCompatActivity {
 
     public void onAccept(View view)
     {
+        popupWindow.dismiss();
         myTimer.cancel();
-        object.put("driverId", ParseUser.getCurrentUser().getObjectId());
+        object.put("driverId", ParseUser.getCurrentUser().getString("driverId"));
         object.put("status", "assigned");
         object.saveInBackground(new SaveCallback() {
             @Override

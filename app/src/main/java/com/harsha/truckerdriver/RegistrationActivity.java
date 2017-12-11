@@ -21,6 +21,9 @@ import com.parse.SaveCallback;
 import com.parse.SignUpCallback;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 
 public class RegistrationActivity extends AppCompatActivity {
 
@@ -98,8 +101,21 @@ public class RegistrationActivity extends AppCompatActivity {
     {
         if (requestCode == PICK_IMAGE && resultCode == RESULT_OK && data != null) {
             Uri pickedImage = data.getData();
+            try {
+                InputStream inputStream = getContentResolver().openInputStream(pickedImage);
+                byteArray = getBytes(inputStream);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+                showToast("File not found");
+                return;
+            }
+            catch (IOException e)
+            {
+                showToast("IO Exception");
+                return;
+            }
 
-            String[] filePath = { MediaStore.Images.Media.DATA };
+         /*   String[] filePath = { MediaStore.Images.Media.DATA };
             if(pickedImage == null)
             {
                 showToast("Error picking file");
@@ -119,8 +135,20 @@ public class RegistrationActivity extends AppCompatActivity {
             //uploadImageFile(byteArray);
 
 
-            cursor.close();
+            cursor.close();  */
         }
+    }
+
+    public byte[] getBytes(InputStream inputStream) throws IOException {
+        ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
+        int bufferSize = 1024;
+        byte[] buffer = new byte[bufferSize];
+
+        int len = 0;
+        while ((len = inputStream.read(buffer)) != -1) {
+            byteBuffer.write(buffer, 0, len);
+        }
+        return byteBuffer.toByteArray();
     }
 
     public void register(View view)
@@ -145,7 +173,8 @@ public class RegistrationActivity extends AppCompatActivity {
 
     void registerDriver()
     {
-        ParseObject object = new ParseObject("Driver");
+        final ParseObject object = new ParseObject("Driver");
+        object.put("phoneNumber", getEditText(R.id.phone_number).getText().toString());
         object.put("userId", user.getObjectId());
         object.put("username", user.getUsername());
         object.put("vehicleName", getEditText(R.id.vehicle_name).getText().toString());
@@ -161,7 +190,14 @@ public class RegistrationActivity extends AppCompatActivity {
                     return;
                 }
                 showToast("Registration successful");
-                loadToMainActivity();
+                user.put("driverId", object.getObjectId());
+                user.saveInBackground(new SaveCallback() {
+                    @Override
+                    public void done(ParseException e) {
+                        loadToMainActivity();
+                    }
+                });
+
             }
         });
     }

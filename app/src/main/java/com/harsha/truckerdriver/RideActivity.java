@@ -13,6 +13,7 @@ import android.location.Geocoder;
 import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -21,7 +22,9 @@ import android.widget.Toast;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.parse.FindCallback;
+import com.parse.FunctionCallback;
 import com.parse.GetCallback;
+import com.parse.ParseCloud;
 import com.parse.ParseException;
 import com.parse.ParseGeoPoint;
 import com.parse.ParseObject;
@@ -30,6 +33,7 @@ import com.parse.ParseUser;
 import com.parse.SaveCallback;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 
 public class RideActivity extends AppCompatActivity {
@@ -40,6 +44,7 @@ public class RideActivity extends AppCompatActivity {
     private ParseObject driver;
     private Button rightButton;
     private LatLng navLatLng;
+    private ParseObject user;
 
     public enum GoodType {
         ELECTRICAL_ELECTRONICS, FURNITURE, TIMBER_PLYWOOD, TEXTILE, PHARMACY, FOOD, CHEMICALS, PLASTIC
@@ -68,12 +73,14 @@ public class RideActivity extends AppCompatActivity {
     {
         ParseGeoPoint point = request.getParseGeoPoint("location");
         navLatLng = new LatLng(point.getLatitude(), point.getLongitude());
-        final String phoneNumber = "tel:07204326536";
+
         ImageButton btn = (ImageButton) findViewById(R.id.ride_call);
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
+                if(request == null) return;
+                String phone = request.getString("phoneNumber");
+                String phoneNumber = "tel:" + phone;
                 Intent intent = new Intent(Intent.ACTION_DIAL);
                 intent.setData(Uri.parse(phoneNumber));
                 startActivity(intent);
@@ -142,14 +149,6 @@ public class RideActivity extends AppCompatActivity {
             }
 
         });
-        final Handler handler = new Handler();
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                pushLocation();
-                handler.postDelayed(this, 15000);
-            }
-        }, 15000);
     }
 
     void pushLocation()
@@ -176,6 +175,7 @@ public class RideActivity extends AppCompatActivity {
                     showToast("Error please try again!");
                     return;
                 }
+                notifyCustomer(1);
                 status = Status.ARRIVED;
                 rightButton.setText("Start Ride");
                 rightButton.setOnClickListener(new View.OnClickListener() {
@@ -199,6 +199,7 @@ public class RideActivity extends AppCompatActivity {
                     showToast("Error please try again");
                     return;
                 }
+                notifyCustomer(2);
                 navLatLng = getDestination(request.getString("destination"));
                 rightButton.setText("End Ride");
                 status = Status.STARTED;
@@ -229,6 +230,7 @@ public class RideActivity extends AppCompatActivity {
                     showToast("Error please try again");
                     return;
                 }
+                notifyCustomer(4);
                 showToast("Ride had been cancelled");
                 status = Status.CANCELED;
                 Intent intent = new Intent(getApplicationContext(), MainActivity.class);
@@ -249,6 +251,7 @@ public class RideActivity extends AppCompatActivity {
                     showToast("Error please try again");
                     return;
                 }
+                notifyCustomer(3);
                 status = Status.FINISHED;
                 Intent intent = new Intent(getApplicationContext(), RideFinishedActivity.class);
                 startActivity(intent);
@@ -256,10 +259,24 @@ public class RideActivity extends AppCompatActivity {
         });
     }
 
+    void notifyCustomer(int id)
+    {
+        HashMap<String, Object> params = new HashMap<String, Object>();
+        params.put("alertId", id);
+        params.put("installation", request.getString("userInsId"));
+        ParseCloud.callFunctionInBackground("sendNotification", params, new FunctionCallback<Integer>() {
+            public void done(Integer res, ParseException e) {
+                if (e == null) {
+                    Log.i("Notification", "Successfully sent");
+                }
+            }
+        });
+    }
+
 
     void getRequestData() {
         Intent intent = getIntent();
-        String requestId = intent.getStringExtra("requestId");
+        final String requestId = intent.getStringExtra("requestId");
         ParseQuery query = new ParseQuery("Request");
         query.whereEqualTo("objectId", requestId);
         query.getInBackground(requestId, new GetCallback<ParseObject>() {
@@ -270,8 +287,33 @@ public class RideActivity extends AppCompatActivity {
                     return;
                 }
                 request = object;
+                //getUserData(request.getString("username"));
+                notifyCustomer(0);
                 initializeButtonClickListeners();
                 displayData();
+            }
+
+        });
+    }
+
+    void getUserData(String username)
+    {
+        ParseQuery query = new ParseQuery("User");
+        query.whereEqualTo("username", username);
+        query.setLimit(1);
+        query.findInBackground(new FindCallback<ParseObject>() {
+            @Override
+            public void done(List<ParseObject> objects, ParseException e) {
+                if(e!=null){
+                    showToast("Error!!");
+                    return;
+                }
+                if(objects.size() == 0)
+                {
+                    showToast("Error 0 objects");
+                    return;
+                }
+                user = objects.get(0);
             }
 
         });
