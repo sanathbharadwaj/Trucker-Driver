@@ -31,7 +31,7 @@ public class TruckerDriver extends Application {
         Parse.initialize(new Parse.Configuration.Builder(getApplicationContext())
                 .applicationId("anotherId")
                 .clientKey("myClientChettinad")
-                .server("http://18.217.148.165:1337/parse")
+                .server("http://52.14.72.244:1337/parse")
                 .build()
         );
 
