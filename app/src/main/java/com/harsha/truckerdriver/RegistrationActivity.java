@@ -59,7 +59,7 @@ public class RegistrationActivity extends AppCompatActivity {
             public void done(ParseException e) {
                 if(e!=null)
                 {
-                    showToast("Registration error please connect to the internet!");
+                    showToast("Registration error!");
                     return;
                 }
                 editor = preferences.edit();

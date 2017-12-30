@@ -32,6 +32,7 @@ public class TruckerDriver extends Application {
                 .applicationId("anotherId")
                 .clientKey("myClientChettinad")
                 .server("http://52.14.72.244:1337/parse")
+                .enableLocalDataStore()
                 .build()
         );
 

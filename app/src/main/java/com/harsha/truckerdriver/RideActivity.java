@@ -303,12 +303,12 @@ public class RideActivity extends AppCompatActivity {
 
     int calculateCash()
     {
-        int PRICE_PER_KM = 21, PRICE_PER_MINUTE = 2;
+        int PRICE_PER_KM = 15, PRICE_PER_MINUTE = 3;
         long rideDuration = (new Date().getTime()-
                 twoLocations.getDate("startedAt").getTime())/1000;
 
         int totalFare = 0, baseFare = 200;
-        totalFare = (int)(baseFare + PRICE_PER_KM * (rideDistance/1000 - 1) + PRICE_PER_MINUTE * (rideDuration/60 - 60));
+        totalFare = (int)(baseFare + PRICE_PER_KM * (rideDistance/1000) + PRICE_PER_MINUTE * (rideDuration/60));
         return totalFare;
 
     }

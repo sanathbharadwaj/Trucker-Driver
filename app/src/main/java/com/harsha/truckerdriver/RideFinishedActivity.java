@@ -28,5 +28,6 @@ public class RideFinishedActivity extends AppCompatActivity {
     public void onFinish(View view){
         Intent intent = new Intent(this, MainActivity.class);
         startActivity(intent);
+        finish();
     }
 }
