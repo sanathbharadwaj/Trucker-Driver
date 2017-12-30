@@ -1,6 +1,7 @@
 package com.harsha.truckerdriver;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Service;
 import android.content.Context;
@@ -29,6 +30,8 @@ public class GPSTracker extends Service implements LocationListener {
     // flag for GPS status
     boolean canGetLocation = false;
 
+    RideActivity rideActivity;
+
     Location location; // location
     double latitude; // latitude
     double longitude; // longitude
@@ -37,13 +40,15 @@ public class GPSTracker extends Service implements LocationListener {
     private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10; // 10 meters
 
     // The minimum time between updates in milliseconds
-    private static final long MIN_TIME_BW_UPDATES = 1000 * 10 * 1; // 1 minute
+    private static final long MIN_TIME_BW_UPDATES = 1000 * 10;
 
     // Declaring a Location Manager
     protected LocationManager locationManager;
+    private Location previousLocation;
 
     public GPSTracker(Context context) {
         this.mContext = context;
+        this.rideActivity = (RideActivity) context;
         getLocation();
     }
 
@@ -186,6 +191,14 @@ public class GPSTracker extends Service implements LocationListener {
 
     @Override
     public void onLocationChanged(Location location) {
+        if (rideActivity.status == RideActivity.Status.STARTED) {
+            if (previousLocation == null) {
+                previousLocation = location;
+                return;
+            }
+            rideActivity.rideDistance += location.distanceTo(previousLocation);
+            previousLocation = location;
+        }
     }
 
     @Override
@@ -194,6 +207,7 @@ public class GPSTracker extends Service implements LocationListener {
 
     @Override
     public void onProviderEnabled(String provider) {
+        rideActivity.startGPSService();
     }
 
     @Override

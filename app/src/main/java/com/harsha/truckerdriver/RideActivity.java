@@ -33,6 +33,8 @@ import com.parse.ParseUser;
 import com.parse.SaveCallback;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -45,6 +47,9 @@ public class RideActivity extends AppCompatActivity {
     private Button rightButton;
     private LatLng navLatLng;
     private ParseObject user;
+    private ParseObject twoLocations;
+    public float rideDistance = 0;
+    private int totalFare;
 
     public enum GoodType {
         ELECTRICAL_ELECTRONICS, FURNITURE, TIMBER_PLYWOOD, TEXTILE, PHARMACY, FOOD, CHEMICALS, PLASTIC
@@ -58,7 +63,7 @@ public class RideActivity extends AppCompatActivity {
         ACCEPTED, ASSIGNED, ARRIVED, STARTED, FINISHED, CANCELED
     }
 
-    Status status = Status.ASSIGNED;
+    public Status status = Status.ASSIGNED;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,7 +107,7 @@ public class RideActivity extends AppCompatActivity {
 
 
 
-    void startGPSService()
+    public void startGPSService()
     {
         if(Build.VERSION.SDK_INT >= 23 && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
         {
@@ -191,6 +196,7 @@ public class RideActivity extends AppCompatActivity {
     void startRide()
     {
         request.put("status", "started");
+        request.put("startedAt", new Date());
         request.saveInBackground(new SaveCallback() {
             @Override
             public void done(ParseException e) {
@@ -200,6 +206,7 @@ public class RideActivity extends AppCompatActivity {
                     return;
                 }
                 notifyCustomer(2);
+                storeStartData();
                 navLatLng = getDestination(request.getString("destination"));
                 rightButton.setText("End Ride");
                 status = Status.STARTED;
@@ -211,6 +218,17 @@ public class RideActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    void storeStartData()
+    {
+        Location location = gpsTracker.getLocation();
+        ParseGeoPoint point = new ParseGeoPoint(location.getLatitude(), location.getLongitude());
+        twoLocations = new ParseObject("LocationData");
+        twoLocations.put("startLocation", point);
+        Date date = new Date();
+        twoLocations.put("startedAt", date);
+        twoLocations.pinInBackground();
     }
 
     @Override
@@ -243,6 +261,9 @@ public class RideActivity extends AppCompatActivity {
 
     void finishRide(){
         request.put("status", "finished");
+        request.put("endedAt", new Date());
+        totalFare = calculateCash();
+        request.put("amount", totalFare);
         request.saveInBackground(new SaveCallback() {
             @Override
             public void done(ParseException e) {
@@ -252,11 +273,44 @@ public class RideActivity extends AppCompatActivity {
                     return;
                 }
                 notifyCustomer(3);
+
                 status = Status.FINISHED;
-                Intent intent = new Intent(getApplicationContext(), RideFinishedActivity.class);
-                startActivity(intent);
+                storeEndData();
             }
         });
+    }
+
+    void storeEndData()
+    {
+        Location location = gpsTracker.getLocation();
+        ParseGeoPoint point = new ParseGeoPoint(location.getLatitude(), location.getLongitude());
+        twoLocations = new ParseObject("LocationData");
+        twoLocations.put("endLocation", point);
+        Date date = new Date();
+        twoLocations.put("endedAt", date);
+        twoLocations.pinInBackground(new SaveCallback() {
+            @Override
+            public void done(ParseException e) {
+                if(e!=null){showToast("Error try again");return;}
+                Intent intent = new Intent(getApplicationContext(), RideFinishedActivity.class);
+                intent.putExtra("fare", totalFare);
+                startActivity(intent);
+                gpsTracker.stopUsingGPS();
+                finish();
+            }
+        });
+    }
+
+    int calculateCash()
+    {
+        int PRICE_PER_KM = 21, PRICE_PER_MINUTE = 2;
+        long rideDuration = (new Date().getTime()-
+                twoLocations.getDate("startedAt").getTime())/1000;
+
+        int totalFare = 0, baseFare = 200;
+        totalFare = (int)(baseFare + PRICE_PER_KM * (rideDistance/1000 - 1) + PRICE_PER_MINUTE * (rideDuration/60 - 60));
+        return totalFare;
+
     }
 
     void notifyCustomer(int id)
