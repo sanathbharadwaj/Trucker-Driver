@@ -262,6 +262,8 @@ public class RideActivity extends AppCompatActivity {
     void finishRide(){
         request.put("status", "finished");
         request.put("endedAt", new Date());
+        showToast("Total distance: " + rideDistance);
+        showToast("Total distance: " + rideDistance);
         totalFare = calculateCash();
         request.put("amount", totalFare);
         request.saveInBackground(new SaveCallback() {
@@ -303,9 +305,11 @@ public class RideActivity extends AppCompatActivity {
 
     int calculateCash()
     {
-        int PRICE_PER_KM = 15, PRICE_PER_MINUTE = 3;
+       final int PRICE_PER_KM = 15, PRICE_PER_MINUTE = 3;
         long rideDuration = (new Date().getTime()-
                 twoLocations.getDate("startedAt").getTime())/1000;
+        showToast("Ride duration: " + rideDuration);
+        showToast("Ride duration: " + rideDuration);
 
         int totalFare = 0, baseFare = 200;
         totalFare = (int)(baseFare + PRICE_PER_KM * (rideDistance/1000) + PRICE_PER_MINUTE * (rideDuration/60));
