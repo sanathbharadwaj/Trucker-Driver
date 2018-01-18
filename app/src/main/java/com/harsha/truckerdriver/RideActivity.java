@@ -140,7 +140,6 @@ public class RideActivity extends AppCompatActivity {
         }
         else {
             gpsTracker = new GPSTracker(this);
-            sendMyLocation();
         }
 
     }
@@ -150,23 +149,12 @@ public class RideActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             gpsTracker = new GPSTracker(this);
-            sendMyLocation();
         }
     }
 
     void sendMyLocation()
     {
-        if(request == null) return;
-        ParseQuery<ParseObject> query = new ParseQuery<>("Request");
-        query.getInBackground(request.getObjectId(), new GetCallback<ParseObject>() {
-            @Override
-            public void done(ParseObject object, ParseException e) {
-                if(e!= null)
-                {
-                    sendMyLocation();
-                    return;
-                }
-                final Handler handler = new Handler();
+        final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
@@ -174,14 +162,12 @@ public class RideActivity extends AppCompatActivity {
                         handler.postDelayed(this, 10000);
                     }
                 }, 1000);
-            }
-
-        });
     }
 
     void pushLocation()
     {
         if(driver == null) return;
+        if(driverPath.size() == 0) return;
         Location location = gpsTracker.getLocation();
         if(location == null)
             return;
@@ -194,7 +180,13 @@ public class RideActivity extends AppCompatActivity {
             @Override
             public void done(ParseException e) {
                 request.put("driverPath", file);
-                request.saveInBackground();
+                request.saveInBackground(new SaveCallback() {
+                    @Override
+                    public void done(ParseException e) {
+                        if(e!=null)
+                            showToast(e.getMessage());
+                    }
+                });
             }
         });
 
@@ -385,6 +377,7 @@ public class RideActivity extends AppCompatActivity {
                     return;
                 }
                 request = object;
+                sendMyLocation();
                 //getUserData(request.getString("username"));
                 notifyCustomer(0, ParseUser.getCurrentUser().getUsername());
                 initializeButtonClickListeners();
