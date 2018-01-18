@@ -3,6 +3,7 @@ package com.harsha.truckerdriver;
 
 import android.app.Application;
 
+import com.google.android.gms.maps.model.LatLng;
 import com.parse.Parse;
 import com.parse.ParseACL;
 import com.parse.ParseInstallation;
@@ -10,7 +11,7 @@ import com.parse.ParsePush;
 import com.parse.ParseUser;
 
 /**
- * Created by Admin on 11/26/2017.
+ * Created by Sanath on 11/26/2017.
  */
 
 public class TruckerDriver extends Application {

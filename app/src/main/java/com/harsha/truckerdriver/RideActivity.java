@@ -21,11 +21,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.model.LatLng;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.parse.FindCallback;
 import com.parse.FunctionCallback;
 import com.parse.GetCallback;
 import com.parse.ParseCloud;
 import com.parse.ParseException;
+import com.parse.ParseFile;
 import com.parse.ParseGeoPoint;
 import com.parse.ParseObject;
 import com.parse.ParseQuery;
@@ -33,7 +36,8 @@ import com.parse.ParseUser;
 import com.parse.SaveCallback;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -50,6 +54,7 @@ public class RideActivity extends AppCompatActivity {
     private ParseObject twoLocations;
     public float rideDistance = 0;
     private int totalFare;
+    public List<LatLng> driverPath;
 
     public enum GoodType {
         ELECTRICAL_ELECTRONICS, FURNITURE, TIMBER_PLYWOOD, TEXTILE, PHARMACY, FOOD, CHEMICALS, PLASTIC
@@ -69,8 +74,26 @@ public class RideActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ride);
+        driverPath = new ArrayList<>();
+        getDriver();
         getRequestData();
         startGPSService();
+    }
+
+    void getDriver()
+    {
+        ParseQuery<ParseObject> query = new ParseQuery<>("Driver");
+        query.whereEqualTo("username", ParseUser.getCurrentUser().getUsername());
+        query.setLimit(1);
+        query.findInBackground(new FindCallback<ParseObject>() {
+            @Override
+            public void done(List<ParseObject> objects, ParseException e) {
+                driver = objects.get(0);
+                driver.put("isAvailable", false);
+                driver.saveEventually();
+
+            }
+        });
     }
 
 
@@ -107,6 +130,8 @@ public class RideActivity extends AppCompatActivity {
 
 
 
+
+
     public void startGPSService()
     {
         if(Build.VERSION.SDK_INT >= 23 && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
@@ -131,26 +156,24 @@ public class RideActivity extends AppCompatActivity {
 
     void sendMyLocation()
     {
-        ParseQuery query = new ParseQuery("Driver");
-        query.whereEqualTo("username", ParseUser.getCurrentUser().getUsername());
-        query.setLimit(1);
-        query.findInBackground(new FindCallback<ParseObject>() {
+        if(request == null) return;
+        ParseQuery<ParseObject> query = new ParseQuery<>("Request");
+        query.getInBackground(request.getObjectId(), new GetCallback<ParseObject>() {
             @Override
-            public void done(List<ParseObject> objects, ParseException e) {
+            public void done(ParseObject object, ParseException e) {
                 if(e!= null)
                 {
                     sendMyLocation();
                     return;
                 }
-                driver = objects.get(0);
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         pushLocation();
-                        handler.postDelayed(this, 15000);
+                        handler.postDelayed(this, 10000);
                     }
-                }, 15000);
+                }, 1000);
             }
 
         });
@@ -162,14 +185,24 @@ public class RideActivity extends AppCompatActivity {
         Location location = gpsTracker.getLocation();
         if(location == null)
             return;
-        ParseGeoPoint point = new ParseGeoPoint(location.getLatitude(), location.getLongitude());
-        driver.put("driverLocation", point);
-        driver.saveInBackground();
+        Gson gson = new Gson();
+        Type listType = new TypeToken<List<LatLng>>() {}.getType();
+        String pathJSON = gson.toJson(driverPath, listType);
+        byte[] data = pathJSON.getBytes();
+        final ParseFile file = new ParseFile("path.txt", data);
+        file.saveInBackground(new SaveCallback() {
+            @Override
+            public void done(ParseException e) {
+                request.put("driverPath", file);
+                request.saveInBackground();
+            }
+        });
+
+
     }
 
     public void arrived(View view)
     {
-        showToast("Test : arrived");
         rightButton = (Button)view;
         request.put("status", "arrived");
         request.saveInBackground(new SaveCallback() {
@@ -180,7 +213,7 @@ public class RideActivity extends AppCompatActivity {
                     showToast("Error please try again!");
                     return;
                 }
-                notifyCustomer(1);
+                notifyCustomer(1, "NULL");
                 status = Status.ARRIVED;
                 rightButton.setText("Start Ride");
                 rightButton.setOnClickListener(new View.OnClickListener() {
@@ -205,7 +238,7 @@ public class RideActivity extends AppCompatActivity {
                     showToast("Error please try again");
                     return;
                 }
-                notifyCustomer(2);
+                notifyCustomer(2, driver.getString("username"));
                 storeStartData();
                 navLatLng = getDestination(request.getString("destination"));
                 rightButton.setText("End Ride");
@@ -248,11 +281,13 @@ public class RideActivity extends AppCompatActivity {
                     showToast("Error please try again");
                     return;
                 }
-                notifyCustomer(4);
+                notifyCustomer(4, "NULL");
                 showToast("Ride had been cancelled");
                 status = Status.CANCELED;
                 Intent intent = new Intent(getApplicationContext(), MainActivity.class);
                 startActivity(intent);
+                driver.put("isAvailable", true);
+                driver.saveEventually();
                 finish();
             }
         });
@@ -265,6 +300,8 @@ public class RideActivity extends AppCompatActivity {
         showToast("Total distance: " + rideDistance);
         showToast("Total distance: " + rideDistance);
         totalFare = calculateCash();
+        driver.put("isAvailable", true);
+        driver.saveEventually();
         request.put("amount", totalFare);
         request.saveInBackground(new SaveCallback() {
             @Override
@@ -274,7 +311,7 @@ public class RideActivity extends AppCompatActivity {
                     showToast("Error please try again");
                     return;
                 }
-                notifyCustomer(3);
+                notifyCustomer(3, "Rs. "+ totalFare);
 
                 status = Status.FINISHED;
                 storeEndData();
@@ -317,10 +354,11 @@ public class RideActivity extends AppCompatActivity {
 
     }
 
-    void notifyCustomer(int id)
+    void notifyCustomer(int id, String extra)
     {
         HashMap<String, Object> params = new HashMap<String, Object>();
         params.put("alertId", id);
+        params.put("extra", extra);
         params.put("installation", request.getString("userInsId"));
         ParseCloud.callFunctionInBackground("sendNotification", params, new FunctionCallback<Integer>() {
             public void done(Integer res, ParseException e) {
@@ -335,7 +373,7 @@ public class RideActivity extends AppCompatActivity {
     void getRequestData() {
         Intent intent = getIntent();
         final String requestId = intent.getStringExtra("requestId");
-        ParseQuery query = new ParseQuery("Request");
+        ParseQuery<ParseObject> query = new ParseQuery<>("Request");
         query.whereEqualTo("objectId", requestId);
         query.getInBackground(requestId, new GetCallback<ParseObject>() {
             @Override
@@ -346,7 +384,7 @@ public class RideActivity extends AppCompatActivity {
                 }
                 request = object;
                 //getUserData(request.getString("username"));
-                notifyCustomer(0);
+                notifyCustomer(0, ParseUser.getCurrentUser().getUsername());
                 initializeButtonClickListeners();
                 displayData();
             }
@@ -356,7 +394,7 @@ public class RideActivity extends AppCompatActivity {
 
     void getUserData(String username)
     {
-        ParseQuery query = new ParseQuery("User");
+        ParseQuery<ParseObject> query = new ParseQuery<ParseObject>("User");
         query.whereEqualTo("username", username);
         query.setLimit(1);
         query.findInBackground(new FindCallback<ParseObject>() {
@@ -448,13 +486,12 @@ public class RideActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
             //TODO:Handle this error.
-            if (addressList.size() == 0) {
+            if (addressList == null || addressList.size() == 0) {
                 showToast("Please restart your phone");
                 return new LatLng(0, 0);
             }
             Address address = addressList.get(0);
             return new LatLng(address.getLatitude(), address.getLongitude());
-
         }
         return null;
 

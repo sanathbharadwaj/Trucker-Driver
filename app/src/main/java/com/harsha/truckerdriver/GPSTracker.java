@@ -1,6 +1,7 @@
 package com.harsha.truckerdriver;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Service;
@@ -17,6 +18,9 @@ import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.widget.Toast;
+
+import com.google.android.gms.maps.model.LatLng;
+import com.parse.ParseGeoPoint;
 
 public class GPSTracker extends Service implements LocationListener {
 
@@ -53,6 +57,7 @@ public class GPSTracker extends Service implements LocationListener {
         getLocation();
     }
 
+    @SuppressLint("MissingPermission")
     public Location getLocation() {
         try {
             locationManager = (LocationManager) mContext
@@ -197,6 +202,8 @@ public class GPSTracker extends Service implements LocationListener {
                 previousLocation = location;
                 return;
             }
+            LatLng point = new LatLng(location.getLatitude(), location.getLongitude());
+            rideActivity.driverPath.add(point);
             rideActivity.rideDistance += location.distanceTo(previousLocation);
             previousLocation = location;
             Toast.makeText(mContext, "Location changed", Toast.LENGTH_SHORT).show();
