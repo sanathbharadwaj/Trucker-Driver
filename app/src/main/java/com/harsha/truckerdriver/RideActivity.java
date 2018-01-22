@@ -2,6 +2,7 @@ package com.harsha.truckerdriver;
 
 import android.Manifest;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
@@ -45,9 +46,9 @@ import java.util.List;
 public class RideActivity extends AppCompatActivity {
 
     public GPSTracker gpsTracker;
-    private ParseObject request;
+    public ParseObject request;
     private ImageButton navButton;
-    private ParseObject driver;
+    public ParseObject driver;
     private Button rightButton;
     private LatLng navLatLng;
     private ParseObject user;
@@ -55,6 +56,9 @@ public class RideActivity extends AppCompatActivity {
     public float rideDistance = 0;
     private int totalFare;
     public List<LatLng> driverPath;
+    private boolean isRunning = false;
+    public SharedPreferences.Editor editor;
+    SharedPreferences prefs;
 
     public enum GoodType {
         ELECTRICAL_ELECTRONICS, FURNITURE, TIMBER_PLYWOOD, TEXTILE, PHARMACY, FOOD, CHEMICALS, PLASTIC
@@ -75,8 +79,10 @@ public class RideActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ride);
         driverPath = new ArrayList<>();
+        editor = getSharedPreferences(getString(R.string.package_name), MODE_PRIVATE).edit();
+        prefs = getSharedPreferences(getString(R.string.package_name), MODE_PRIVATE);
+        checkForCurrentTrip();
         getDriver();
-        getRequestData();
         startGPSService();
     }
 
@@ -125,6 +131,22 @@ public class RideActivity extends AppCompatActivity {
             }
         });
 
+
+    }
+
+    void checkForCurrentTrip()
+    {
+        Intent intent = getIntent();
+        if(intent.getBooleanExtra(getString(R.string.is_running), false))
+        {
+            isRunning = true;
+            rideDistance += prefs.getFloat("rideDistance", 0);
+            getRequestData();
+        }
+        else
+        {
+            getRequestData();
+        }
 
     }
 
@@ -206,14 +228,19 @@ public class RideActivity extends AppCompatActivity {
                     return;
                 }
                 notifyCustomer(1, "NULL");
-                status = Status.ARRIVED;
-                rightButton.setText("Start Ride");
-                rightButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        startRide();
-                    }
-                });
+                setArrivedStatus();
+            }
+        });
+    }
+
+    void setArrivedStatus()
+    {
+        status = Status.ARRIVED;
+        rightButton.setText("Start Ride");
+        rightButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startRide();
             }
         });
     }
@@ -232,15 +259,19 @@ public class RideActivity extends AppCompatActivity {
                 }
                 notifyCustomer(2, driver.getString("username"));
                 storeStartData();
-                navLatLng = getDestination(request.getString("destination"));
-                rightButton.setText("End Ride");
-                status = Status.STARTED;
-                rightButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                       finishRide();
-                    }
-                });
+                setStartStatus();
+            }
+        });
+    }
+
+    private void setStartStatus() {
+        navLatLng = getDestination(request.getString("destination"));
+        rightButton.setText("End Ride");
+        status = Status.STARTED;
+        rightButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                finishRide();
             }
         });
     }
@@ -251,7 +282,10 @@ public class RideActivity extends AppCompatActivity {
         ParseGeoPoint point = new ParseGeoPoint(location.getLatitude(), location.getLongitude());
         twoLocations = new ParseObject("LocationData");
         twoLocations.put("startLocation", point);
+        twoLocations.put("id", request.getObjectId());
         Date date = new Date();
+        editor.putLong("startedAt", date.getTime());
+        editor.apply();
         twoLocations.put("startedAt", date);
         twoLocations.pinInBackground();
     }
@@ -259,7 +293,10 @@ public class RideActivity extends AppCompatActivity {
     @Override
     public void onBackPressed()
     {
-        //Do nothing
+        Intent startMain = new Intent(Intent.ACTION_MAIN);
+        startMain.addCategory(Intent.CATEGORY_HOME);
+        startMain.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(startMain);
     }
 
     public void cancelRide(View view)
@@ -309,6 +346,7 @@ public class RideActivity extends AppCompatActivity {
                 storeEndData();
             }
         });
+        saveNoRunningRide();
     }
 
     void storeEndData()
@@ -334,9 +372,10 @@ public class RideActivity extends AppCompatActivity {
 
     int calculateCash()
     {
+        long startTime = prefs.getLong("startedAt", 0);
        final int PRICE_PER_KM = 15, PRICE_PER_MINUTE = 3;
         long rideDuration = (new Date().getTime()-
-                twoLocations.getDate("startedAt").getTime())/1000;
+                startTime)/1000;
         showToast("Ride duration: " + rideDuration);
         showToast("Ride duration: " + rideDuration);
 
@@ -345,6 +384,7 @@ public class RideActivity extends AppCompatActivity {
         return totalFare;
 
     }
+    
 
     void notifyCustomer(int id, String extra)
     {
@@ -361,7 +401,6 @@ public class RideActivity extends AppCompatActivity {
         });
     }
 
-    //Hello this is my test change
 
 
     void getRequestData() {
@@ -382,9 +421,32 @@ public class RideActivity extends AppCompatActivity {
                 notifyCustomer(0, ParseUser.getCurrentUser().getUsername());
                 initializeButtonClickListeners();
                 displayData();
+                if(isRunning)
+                updateRideState();
             }
 
         });
+    }
+
+    private void updateRideState() {
+        String statusLocal = request.getString("status");
+        switch (statusLocal)
+        {
+            case "assigned":  status = Status.ASSIGNED;break;
+            case "arrived": setArrivedStatus();break;
+            case "started": setStartStatus();break;
+            case "finished": saveNoRunningRide();
+                finish(); break;
+        }
+    }
+
+    void saveNoRunningRide()
+    {
+        SharedPreferences.Editor prefs = getSharedPreferences(getString(R.string.package_name), MODE_PRIVATE).edit();
+        prefs.putBoolean(getString(R.string.is_running), false);
+        prefs.apply();
+        editor.clear();
+        editor.apply();
     }
 
     void getUserData(String username)

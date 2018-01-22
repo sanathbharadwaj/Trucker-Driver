@@ -35,23 +35,33 @@ public class NotificationReceiver extends ParsePushBroadcastReceiver {
             JSONObject json = new JSONObject(intent.getExtras().getString("com.parse.Data"));
             int title = json.getInt("title");
             String requestId = json.getString("alert");
-            Intent newRequestIntent = new Intent("NEW_REQUEST");
-            newRequestIntent.putExtra("requestId", requestId);
-            mContext.sendBroadcast(newRequestIntent);
-            notifyUser(requestId);
+            if(title == 1) {
+                Intent newRequestIntent = new Intent("NEW_REQUEST");
+                newRequestIntent.putExtra("requestId", requestId);
+                mContext.sendBroadcast(newRequestIntent);
+                notifyUser(requestId, "New Request Found", "Take the request before someone takes before");
+            }
+            if(title == 2)
+            {
+                Intent newRequestIntent = new Intent("RIDE_CANCELLED");
+                mContext.sendBroadcast(newRequestIntent);
+                notifyUser("cancelled", "Ride Cancelled", "Ride has been cancelled by the customer");
+            }
             }
         catch (Exception e)
         {
             e.printStackTrace();
         }
     }
-    void notifyUser(String requestId)
+    void notifyUser(String extra, String title, String alert)
     {
         Notification notification;
 
         Uri uri= RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
         Intent resultIntent = new Intent(context, MainActivity.class);
-        resultIntent.putExtra("requestId", requestId);
+        resultIntent.putExtra("extra", extra);
+        resultIntent.putExtra("id", notificationId);
+        resultIntent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         PendingIntent resultPendingIntent =
                 PendingIntent.getActivity(
                         context,
@@ -61,8 +71,8 @@ public class NotificationReceiver extends ParsePushBroadcastReceiver {
         if(Build.VERSION.SDK_INT < 16) {
             notification = new Notification.Builder(context)
                     .setSound(uri)
-                    .setContentTitle("New Request found")
-                    .setContentText("Take the request before someone takes before")
+                    .setContentTitle(title)
+                    .setContentText(alert)
                     .setContentIntent(resultPendingIntent)
                     .setSmallIcon(R.mipmap.ic_launcher).getNotification();
         }
@@ -70,8 +80,8 @@ public class NotificationReceiver extends ParsePushBroadcastReceiver {
         {
             notification = new Notification.Builder(context)
                     .setSound(uri)
-                    .setContentTitle("New Request found")
-                    .setContentText("Take the request before someone takes before")
+                    .setContentTitle(title)
+                    .setContentText(alert)
                     .setContentIntent(resultPendingIntent)
                     .setSmallIcon(R.mipmap.ic_launcher).build();
         }

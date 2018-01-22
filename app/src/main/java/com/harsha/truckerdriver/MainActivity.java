@@ -2,17 +2,20 @@ package com.harsha.truckerdriver;
 
 import android.Manifest;
 import android.app.AlertDialog;
+import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -26,15 +29,19 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 import android.widget.Toast;
+import static com.harsha.truckerdriver.Utilities.*;
 
 import com.parse.FindCallback;
+import com.parse.FunctionCallback;
 import com.parse.GetCallback;
 import com.parse.GetDataCallback;
+import com.parse.ParseCloud;
 import com.parse.ParseException;
 import com.parse.ParseFile;
 import com.parse.ParseGeoPoint;
@@ -45,6 +52,7 @@ import com.parse.ParseUser;
 import com.parse.SaveCallback;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -62,24 +70,79 @@ public class MainActivity extends AppCompatActivity {
     public Location lastLocation;
     ParseObject request;
     private int checkingCount;
+    private NotificationManager notificationManager;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        checkForCurrentTrip();
         noDataLoading = true;
         loadDriverData();
         initializeLocationService();
         registerReceiver();
         checkIfFromNotification();
+        notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        checkForNewVersion();
     }
 
     private void checkIfFromNotification() {
         Intent intent = getIntent();
-        String requestId = intent.getStringExtra("requestId");
-        if(requestId != null)
-            getRequest(requestId);
+        String extra = intent.getStringExtra("extra");
+        if(extra != null && !extra.equals("cancelled")) {
+            notificationManager.cancel(intent.getIntExtra("id", 0));
+            getRequest(extra);
+        }
+    }
+
+    private void checkForNewVersion() {
+        ParseQuery<ParseObject> query = new ParseQuery<ParseObject>("Update");
+        query.setLimit(1);
+        query.findInBackground(new FindCallback<ParseObject>() {
+            @Override
+            public void done(List<ParseObject> objects, ParseException e) {
+                if(e!=null || objects.size() == 0) return;
+                if(objects.get(0).getInt("version") > BuildConfig.VERSION_CODE)
+                {
+                    showAppUpdateAlert();
+                }
+            }
+        });
+    }
+
+    private void showAppUpdateAlert() {
+        AlertDialog.Builder builder;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            builder = new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert);
+        } else {
+            builder = new AlertDialog.Builder(this);
+        }
+        builder.setTitle("New Version Available")
+                .setMessage("Please update to the new version in order to continue using TruckerDriver")
+                .setPositiveButton("Update", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        //TODO: Add app url
+                        String url = "https://www.google.com";
+                        Intent i = new Intent(Intent.ACTION_VIEW);
+                        i.setData(Uri.parse(url));
+                        startActivity(i);
+                    }
+                })
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        finish();
+                    }
+                })
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+    }
+
+    void checkForCurrentTrip() {
+        SharedPreferences prefs = getSharedPreferences("com.harsha.trucker", MODE_PRIVATE);
+        if (prefs.getBoolean("isRunning", false)) {
+            loadActivityAndFinish(this, RideActivity.class);
+        }
     }
 
     BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
@@ -90,6 +153,10 @@ public class MainActivity extends AppCompatActivity {
             if(action.equals("NEW_REQUEST"))
             {
                 getRequest(intent.getStringExtra("requestId"));
+            }
+            if(action.equals("RIDE_CANCELLED"))
+            {
+                showToast("Ride has been cancelled by the customer");
             }
 
         }
@@ -367,6 +434,7 @@ public class MainActivity extends AppCompatActivity {
 
     void showPopup(ParseObject object)
     {
+        if(popupExists) return;
         ConstraintLayout mainLayout = (ConstraintLayout) findViewById(R.id.main_layout);
 
         // inflate the layout of the popup window
@@ -375,12 +443,12 @@ public class MainActivity extends AppCompatActivity {
         popupView = inflater.inflate(R.layout.request_popup, null);
 
         // create the popup window
-        int width = ConstraintLayout.LayoutParams.MATCH_PARENT;
-        int height = ConstraintLayout.LayoutParams.MATCH_PARENT;
+        int width = ViewGroup.LayoutParams.MATCH_PARENT;
+        int height = ViewGroup.LayoutParams.WRAP_CONTENT;;
         popupWindow = new PopupWindow(popupView, width, height, true);
 
         // show the popup window
-        popupWindow.showAtLocation(mainLayout, Gravity.CENTER, 0, 0);
+        popupWindow.showAtLocation(mainLayout, Gravity.BOTTOM, 0, 0);
         popupExists = true;
 
         String sourceAddress = object.getString("source");
@@ -424,9 +492,11 @@ public class MainActivity extends AppCompatActivity {
 
     public void onAccept(View view)
     {
+        assert notificationManager != null;
         popupWindow.dismiss();
         myTimer.cancel();
-        request.put("driverId", ParseUser.getCurrentUser().getString("driverId"));
+        acceptRequest();
+       /* request.put("driverId", ParseUser.getCurrentUser().getString("driverId"));
         request.put("status", "assigned");
         request.saveInBackground(new SaveCallback() {
             @Override
@@ -436,9 +506,34 @@ public class MainActivity extends AppCompatActivity {
                     showToast(e.getMessage());
                     return;
                 }
-                popupExists = false;
                 goToRideActivity();
             }
+        });*/
+    }
+
+    void acceptRequest()
+    {
+        HashMap<String, String> params = new HashMap<>();
+        params.put("requestId", request.getObjectId());
+        params.put("driverId", ParseUser.getCurrentUser().getString("driverId"));
+        ParseCloud.callFunctionInBackground("acceptRequest", params, new FunctionCallback<Integer>() {
+           public void done(Integer res, ParseException e)
+           {
+                if(e!=null)
+                {
+                    showToast("Failed to connect to server");
+                    return;
+                }
+                if(res == 1) {
+                    notificationManager.cancelAll();
+                    goToRideActivity();
+                }
+                else
+                {
+                    showToast("The request is either cancelled or already accepted");
+                }
+                popupExists = false;
+           }
         });
     }
 

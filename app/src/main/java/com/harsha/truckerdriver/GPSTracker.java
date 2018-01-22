@@ -21,6 +21,8 @@ import android.widget.Toast;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.parse.ParseGeoPoint;
+import com.parse.ParseObject;
+import com.parse.ParseQuery;
 
 public class GPSTracker extends Service implements LocationListener {
 
@@ -50,6 +52,7 @@ public class GPSTracker extends Service implements LocationListener {
     // Declaring a Location Manager
     protected LocationManager locationManager;
     private Location previousLocation;
+    private ParseObject distanceObject;
 
     public GPSTracker(Context context) {
         this.mContext = context;
@@ -205,6 +208,8 @@ public class GPSTracker extends Service implements LocationListener {
             LatLng point = new LatLng(location.getLatitude(), location.getLongitude());
             rideActivity.driverPath.add(point);
             rideActivity.rideDistance += location.distanceTo(previousLocation);
+            rideActivity.editor.putFloat("rideDistance", rideActivity.rideDistance);
+            rideActivity.editor.apply();
             previousLocation = location;
             Toast.makeText(mContext, "Location changed", Toast.LENGTH_SHORT).show();
         }

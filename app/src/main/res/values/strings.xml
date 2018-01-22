@@ -3,4 +3,6 @@
     <string name="title_activity_registration">RegistrationActivity</string>
     <string name="go_online">Go Online</string>
     <string name="go_offline">Go Offline</string>
+    <string name="is_running">isRunning</string>
+    <string name="package_name">com.harsha.truckerdriver</string>
 </resources>
