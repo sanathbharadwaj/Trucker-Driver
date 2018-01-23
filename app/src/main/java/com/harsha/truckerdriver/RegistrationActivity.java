@@ -57,7 +57,7 @@ public class RegistrationActivity extends AppCompatActivity {
         });
         /*if(preferences.getBoolean(USER_REGISTERED,false))
         {
-            loadToMainActivity();
+            loadToMainActivity();//
         }*/
 
         /*if(ParseUser.getCurrentUser() != null)
