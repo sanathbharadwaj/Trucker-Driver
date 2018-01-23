@@ -35,17 +35,54 @@
             android:screenOrientation="portrait">
         </activity>
         <activity android:name=".RideActivity"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="portrait"
+            android:label="My Ride"/>
+        <activity android:name=".LoginActivity"
+            android:screenOrientation="portrait"
+            android:label="Login">
+
+
+        </activity>
+        <activity android:name=".AboutUsActivity"
+            android:screenOrientation="portrait"
+            android:label="About Us"/>
+        <activity android:name=".ContactUsActivity"
+            android:screenOrientation="portrait"
+            android:label="Contact Us"/>
+        <activity android:name=".OurRatesActivity"
+            android:screenOrientation="portrait"
+            android:label="Our Rates"/>
+        <activity android:name=".PastTripsActivity"
+            android:screenOrientation="portrait"
+            android:label="Past Trips"/>
         <activity android:name=".RegistrationActivity"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait"
+            android:label="Trucker Driver">
             <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+
+           <!-- <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            </intent-filter>-->
         </activity>
+        <activity android:name=".ProfileActivity"
+            android:parentActivityName=".MainActivity"
+            android:screenOrientation="portrait"
+            android:label="Profile"/>
         <activity android:name=".RideFinishedActivity"
-            android:screenOrientation="portrait"></activity>
+            android:parentActivityName=".MainActivity"
+            android:screenOrientation="portrait"
+            android:label="Ride Finish"/>
+
+        <activity android:name=".SupportActivity"
+            android:parentActivityName=".MainActivity"
+            android:screenOrientation="portrait"
+            android:label="Support"/>
 
         <service android:name="com.parse.PushService" />
 

@@ -9,8 +9,10 @@ import android.net.Uri;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.parse.ParseException;
@@ -34,21 +36,45 @@ public class RegistrationActivity extends AppCompatActivity {
     private byte[] byteArray;
     private ParseUser user;
     private ParseFile file;
+    private Toolbar mToolbar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_registration);
         preferences = getSharedPreferences("com.harsha.truckerdriver", MODE_PRIVATE);
-        if(preferences.getBoolean(USER_REGISTERED,false))
+
+        TextView text = (TextView) findViewById(R.id.log);
+
+        text.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View arg0) {
+                // Start NewActivity.class
+                Intent intent = new Intent(RegistrationActivity.this,
+                        LoginActivity.class);
+                startActivity(intent);
+                finish();
+            }
+        });
+        /*if(preferences.getBoolean(USER_REGISTERED,false))
         {
             loadToMainActivity();
-        }
+        }*/
+
+        /*if(ParseUser.getCurrentUser() != null)
+            loadToMainActivity();*/
+        mToolbar = (Toolbar) findViewById(R.id.nav_action_bar);
+        setSupportActionBar(mToolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+
     }
+
+
 
     public void registerUser()
     {
         user = new ParseUser();
+        user.put("name",getEditText(R.id.name_field).getText().toString());
         user.setUsername(getEditText(R.id.username).getText().toString());
         user.setPassword(getEditText(R.id.password).getText().toString());
         user.setEmail(getEditText(R.id.email).getText().toString());

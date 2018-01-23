@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:id="@+id/profile"
+        android:icon="@drawable/user_icon"
+        android:title="Profile"/>
+
+    <item android:id="@+id/past_trips"
+        android:icon="@drawable/past_trip"
+        android:title="Past Trips"/>
+    <item android:id="@+id/our_rates"
+        android:icon="@drawable/rate"
+        android:title="Our Rates"/>
+
+    <item android:id="@+id/about_us"
+        android:icon="@drawable/about_us"
+        android:title="About Us"/>
+    <item android:id="@+id/contact_us"
+        android:icon="@drawable/contact_us"
+        android:title="Contact Us"/>
+    <item android:id="@+id/support"
+        android:icon="@drawable/support"
+        android:title="Support"/>
+    <item
+        android:id="@+id/logout"
+        android:icon="@drawable/logout"
+        android:title="Log Out" />
+</menu>

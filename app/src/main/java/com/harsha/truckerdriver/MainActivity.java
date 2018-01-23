@@ -22,12 +22,18 @@ import android.os.Handler;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.constraint.ConstraintLayout;
+import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -62,6 +68,10 @@ public class MainActivity extends AppCompatActivity {
     private CountDownTimer myTimer;
     private View popupView;
     private TextView timeLeft;
+    private DrawerLayout mDrawerLayout;
+    private ActionBarDrawerToggle mToggle;
+    private Toolbar mToolbar;
+    NavigationView navigationView;
     boolean popupExists = false;
     ParseObject driver;
     LocationManager locationManager;
@@ -71,6 +81,21 @@ public class MainActivity extends AppCompatActivity {
     ParseObject request;
     private int checkingCount;
     private NotificationManager notificationManager;
+
+    @Override
+    public void onBackPressed() {
+        if (this.mDrawerLayout.isDrawerOpen(GravityCompat.START)) {
+            this.mDrawerLayout.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
+            //this.finish();
+        }
+    }
+
+    public void Logout(){
+        ParseUser.logOut();
+        showToast("Logged Out Successfully");
+    }
 
 
     @Override
@@ -85,6 +110,100 @@ public class MainActivity extends AppCompatActivity {
         checkIfFromNotification();
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         checkForNewVersion();
+        initializeNavigationDrawer();
+
+
+
+    }
+
+
+    void initializeNavigationDrawer()
+    {
+        mToolbar = (Toolbar) findViewById(R.id.nav_action_bar);
+        setSupportActionBar(mToolbar);
+        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        mToggle = new ActionBarDrawerToggle(this, mDrawerLayout, R.string.open, R.string.close);
+
+        mDrawerLayout.addDrawerListener(mToggle);
+        mToggle.syncState();
+
+
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+       // getSupportActionBar().setDisplayShowHomeEnabled(true);
+
+
+        navigationView = (NavigationView) findViewById(R.id.navigation_view);
+        navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+
+                switch (item.getItemId()) {
+                    case R.id.profile:
+                        Intent h1 = new Intent(MainActivity.this, ProfileActivity.class);
+                        startActivity(h1);
+                        mDrawerLayout.closeDrawers();
+                        break;////////////
+
+
+                    case R.id.past_trips:
+                        if(driver==null){
+                            showToast("error loading data");
+                        }else {
+                            Intent h3 = new Intent(MainActivity.this, PastTripsActivity.class);
+                            h3.putExtra("driverId", driver.getObjectId());
+                            startActivity(h3);
+                            mDrawerLayout.closeDrawers();
+                        }
+                        break;
+
+
+                    case R.id.our_rates:
+                        Intent h4 = new Intent(MainActivity.this, OurRatesActivity.class);
+                        startActivity(h4);
+                        mDrawerLayout.closeDrawers();
+                        break;
+
+
+                    case R.id.about_us:
+                        Intent h6 = new Intent(MainActivity.this, AboutUsActivity.class);
+                        startActivity(h6);
+                        mDrawerLayout.closeDrawers();
+                        break;
+
+                    case R.id.contact_us:
+                        Intent h7 = new Intent(MainActivity.this, ContactUsActivity.class);
+                        startActivity(h7);
+                        mDrawerLayout.closeDrawers();
+                        break;
+
+                    case R.id.support:
+                        Intent h8 = new Intent(MainActivity.this, SupportActivity.class);
+                        startActivity(h8);
+                        mDrawerLayout.closeDrawers();
+                        break;
+
+                    case R.id.logout:
+                        Logout();
+                        Intent h9 = new Intent(MainActivity.this, LoginActivity.class);
+                        startActivity(h9);
+                        mDrawerLayout.closeDrawers();
+                        finish();
+                        break;
+
+
+                }
+
+                return false;
+            }
+        });
+    }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (mToggle.onOptionsItemSelected(item)){
+            return true;
+
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     private void checkIfFromNotification() {
@@ -358,6 +477,11 @@ public class MainActivity extends AppCompatActivity {
     {
         getTextView(R.id.main_name).setText(driver.getString("username"));
         getTextView(R.id.car_details).setText(driver.getString("vehicleName") + "|" + driver.getString("vehicleNumber"));
+        getTextView(R.id.profile_text).setText(ParseUser.getCurrentUser().getString("name"));
+        getTextView(R.id.phone_text).setText(ParseUser.getCurrentUser().getString("phone"));
+
+
+
         getDriverImage();
     }
 

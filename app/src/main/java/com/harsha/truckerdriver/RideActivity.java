@@ -18,8 +18,11 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.support.v7.widget.Toolbar;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.google.gson.Gson;
@@ -59,6 +62,10 @@ public class RideActivity extends AppCompatActivity {
     private boolean isRunning = false;
     public SharedPreferences.Editor editor;
     SharedPreferences prefs;
+    private ProgressBar imgLoad;
+    private ImageView imgBack1;
+    private Toolbar mToolbar;
+
 
     public enum GoodType {
         ELECTRICAL_ELECTRONICS, FURNITURE, TIMBER_PLYWOOD, TEXTILE, PHARMACY, FOOD, CHEMICALS, PLASTIC
@@ -75,6 +82,12 @@ public class RideActivity extends AppCompatActivity {
     public Status status = Status.ASSIGNED;
 
     @Override
+    public boolean onSupportNavigateUp() {
+        onBackPressed();
+        return true;
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ride);
@@ -84,6 +97,12 @@ public class RideActivity extends AppCompatActivity {
         checkForCurrentTrip();
         getDriver();
         startGPSService();
+
+        mToolbar = (Toolbar) findViewById(R.id.nav_action_bar);
+        setSupportActionBar(mToolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+
     }
 
     void getDriver()
@@ -217,6 +236,11 @@ public class RideActivity extends AppCompatActivity {
 
     public void arrived(View view)
     {
+        imgLoad = (ProgressBar)findViewById(R.id.loader);
+        imgBack1 = (ImageView)findViewById(R.id.img_back1);
+        imgBack1.setVisibility(View.VISIBLE);
+        imgLoad.setVisibility(View.VISIBLE);
+        showToast("Test : arrived");
         rightButton = (Button)view;
         request.put("status", "arrived");
         request.saveInBackground(new SaveCallback() {
@@ -241,12 +265,28 @@ public class RideActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 startRide();
+
+                //notifyCustomer(1);
+                status = Status.ARRIVED;
+                rightButton.setText("Start Ride");
+                imgBack1.setVisibility(View.GONE);
+                imgLoad.setVisibility(View.GONE);
+                rightButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        startRide();
+                    }
+                });
             }
         });
+
     }
+
 
     void startRide()
     {
+        imgBack1.setVisibility(View.VISIBLE);
+        imgLoad.setVisibility(View.VISIBLE);
         request.put("status", "started");
         request.put("startedAt", new Date());
         request.saveInBackground(new SaveCallback() {
@@ -257,6 +297,8 @@ public class RideActivity extends AppCompatActivity {
                     showToast("Error please try again");
                     return;
                 }
+
+                //notifyCustomer(2);
                 notifyCustomer(2, driver.getString("username"));
                 storeStartData();
                 setStartStatus();
@@ -272,8 +314,20 @@ public class RideActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 finishRide();
+                navLatLng = getDestination(request.getString("destination"));
+                rightButton.setText("End Ride");
+                imgBack1.setVisibility(View.GONE);
+                imgLoad.setVisibility(View.GONE);
+                status = Status.STARTED;
+                rightButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                       finishRide();
+                    }
+                });
             }
         });
+
     }
 
     void storeStartData()
@@ -324,6 +378,8 @@ public class RideActivity extends AppCompatActivity {
 
 
     void finishRide(){
+        imgBack1.setVisibility(View.VISIBLE);
+        imgLoad.setVisibility(View.VISIBLE);
         request.put("status", "finished");
         request.put("endedAt", new Date());
         showToast("Total distance: " + rideDistance);
@@ -342,11 +398,16 @@ public class RideActivity extends AppCompatActivity {
                 }
                 notifyCustomer(3, "Rs. "+ totalFare);
 
+                //notifyCustomer(3);
+
                 status = Status.FINISHED;
+                imgBack1.setVisibility(View.GONE);
+                imgLoad.setVisibility(View.GONE);
                 storeEndData();
             }
         });
         saveNoRunningRide();
+
     }
 
     void storeEndData()
@@ -384,7 +445,7 @@ public class RideActivity extends AppCompatActivity {
         return totalFare;
 
     }
-    
+
 
     void notifyCustomer(int id, String extra)
     {

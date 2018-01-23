@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#D3D3D3"
+    tools:context="com.harsha.truckerdriver.ProfileActivity">
+
+
+        <ImageView
+            android:id="@+id/contact_tool"
+            android:layout_width="match_parent"
+            android:layout_height="167dp"
+            android:layout_marginTop="48dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@color/colorPrimary" />
+
+        <ImageView
+            android:id="@+id/profile_icon"
+            android:layout_width="87dp"
+            android:layout_height="77dp"
+            android:layout_marginBottom="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:tint="#ffffff"
+            app:layout_constraintBottom_toBottomOf="@+id/contact_tool"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/contact_tool"
+            app:srcCompat="@drawable/user" />
+
+        <TextView
+            android:id="@+id/name_pt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:text="Name"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/contact_tool" />
+
+        <TextView
+            android:id="@+id/name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="name"
+            android:textColor="#000000"
+            app:layout_constraintStart_toStartOf="@+id/name_pt"
+            app:layout_constraintTop_toBottomOf="@+id/name_pt" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="288dp"
+            android:background="#CCCCCC"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+
+        <TextView
+            android:id="@+id/phone_pt"
+            android:layout_width="wrap_content"
+            android:layout_height="22dp"
+            android:layout_marginTop="40dp"
+            android:text="Phone Number"
+            app:layout_constraintStart_toStartOf="@+id/name"
+            app:layout_constraintTop_toBottomOf="@+id/name" />
+
+        <TextView
+            android:id="@+id/phone_no"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="phone"
+            android:textColor="#000000"
+            app:layout_constraintStart_toStartOf="@+id/phone_pt"
+            app:layout_constraintTop_toBottomOf="@+id/phone_pt" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="376dp"
+            android:background="#CCCCCC"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+
+        <TextView
+            android:id="@+id/email_pt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:text="Email address"
+            app:layout_constraintStart_toStartOf="@+id/phone_no"
+            app:layout_constraintTop_toBottomOf="@+id/phone_no" />
+
+        <TextView
+            android:id="@+id/email_add"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="email"
+            android:textColor="#000000"
+            app:layout_constraintStart_toStartOf="@+id/email_pt"
+            app:layout_constraintTop_toBottomOf="@+id/email_pt" />
+
+
+        <include layout="@layout/navigation_action"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/this_toolbar"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
+
+        <!--<TextView
+            android:id="@+id/toolbar_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Profile"
+            android:textColor="#fff"
+            android:layout_marginLeft="32dp"
+            android:gravity="start"
+            android:textStyle="bold"
+            android:textSize="24sp"/>
+-->
+        <Button
+            android:id="@+id/edit_prof"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:background="#FFFFF0"
+            android:text="Edit Profile"
+            android:textColor="#0000FF"
+            android:textSize="14sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+
+</android.support.constraint.ConstraintLayout>
