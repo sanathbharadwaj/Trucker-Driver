@@ -1,7 +1,10 @@
 package com.harsha.truckerdriver;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -59,12 +62,14 @@ public class RideActivity extends AppCompatActivity {
     public float rideDistance = 0;
     private int totalFare;
     public List<LatLng> driverPath;
-    private boolean isRunning = false;
+    private boolean isOldTrip = false;
     public SharedPreferences.Editor editor;
     SharedPreferences prefs;
     private ProgressBar imgLoad;
     private ImageView imgBack1;
     private Toolbar mToolbar;
+    private String requestId;
+    TextView rideStatusText;
 
 
     public enum GoodType {
@@ -94,9 +99,14 @@ public class RideActivity extends AppCompatActivity {
         driverPath = new ArrayList<>();
         editor = getSharedPreferences(getString(R.string.package_name), MODE_PRIVATE).edit();
         prefs = getSharedPreferences(getString(R.string.package_name), MODE_PRIVATE);
+        rightButton = findViewById(R.id.start_ride);
+        imgLoad = (ProgressBar)findViewById(R.id.loader);
+        imgBack1 = (ImageView)findViewById(R.id.img_back1);
+        rideStatusText = findViewById(R.id.ride_status_text);
         checkForCurrentTrip();
         getDriver();
         startGPSService();
+        registerReceiver();
 
         mToolbar = (Toolbar) findViewById(R.id.nav_action_bar);
         setSupportActionBar(mToolbar);
@@ -149,22 +159,46 @@ public class RideActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+    }
 
+    BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if(action == null) return;
+            if(action.equals("RIDE_CANCELLED"))
+            {
+                showToast("Ride has been cancelled by the customer");
+                saveNoRunningRide();
+                finish();
+            }
+        }
+    };
 
+    void registerReceiver()
+    {
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction("RIDE_CANCELLED");
+        registerReceiver(broadcastReceiver, intentFilter);
     }
 
     void checkForCurrentTrip()
     {
         Intent intent = getIntent();
-        if(intent.getBooleanExtra(getString(R.string.is_running), false))
+        if(prefs.getBoolean(getString(R.string.is_running), false))
         {
-            isRunning = true;
+            isOldTrip = true;
             rideDistance += prefs.getFloat("rideDistance", 0);
+            requestId = prefs.getString("requestId", "NULL");
             getRequestData();
         }
         else
         {
+            requestId = intent.getStringExtra("requestId");
+            editor.putString("requestId", requestId);
+            editor.apply();
             getRequestData();
+            saveRunningState(true);
         }
 
     }
@@ -236,12 +270,8 @@ public class RideActivity extends AppCompatActivity {
 
     public void arrived(View view)
     {
-        imgLoad = (ProgressBar)findViewById(R.id.loader);
-        imgBack1 = (ImageView)findViewById(R.id.img_back1);
         imgBack1.setVisibility(View.VISIBLE);
         imgLoad.setVisibility(View.VISIBLE);
-        showToast("Test : arrived");
-        rightButton = (Button)view;
         request.put("status", "arrived");
         request.saveInBackground(new SaveCallback() {
             @Override
@@ -251,7 +281,10 @@ public class RideActivity extends AppCompatActivity {
                     showToast("Error please try again!");
                     return;
                 }
+                rideStatusText.setText(R.string.arrived_status_text);
                 notifyCustomer(1, "NULL");
+                imgBack1.setVisibility(View.GONE);
+                imgLoad.setVisibility(View.GONE);
                 setArrivedStatus();
             }
         });
@@ -265,18 +298,6 @@ public class RideActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 startRide();
-
-                //notifyCustomer(1);
-                status = Status.ARRIVED;
-                rightButton.setText("Start Ride");
-                imgBack1.setVisibility(View.GONE);
-                imgLoad.setVisibility(View.GONE);
-                rightButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        startRide();
-                    }
-                });
             }
         });
 
@@ -299,7 +320,10 @@ public class RideActivity extends AppCompatActivity {
                 }
 
                 //notifyCustomer(2);
+                rideStatusText.setText("Ride in Progress");
                 notifyCustomer(2, driver.getString("username"));
+                imgBack1.setVisibility(View.GONE);
+                imgLoad.setVisibility(View.GONE);
                 storeStartData();
                 setStartStatus();
             }
@@ -314,17 +338,6 @@ public class RideActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 finishRide();
-                navLatLng = getDestination(request.getString("destination"));
-                rightButton.setText("End Ride");
-                imgBack1.setVisibility(View.GONE);
-                imgLoad.setVisibility(View.GONE);
-                status = Status.STARTED;
-                rightButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                       finishRide();
-                    }
-                });
             }
         });
 
@@ -353,8 +366,15 @@ public class RideActivity extends AppCompatActivity {
         startActivity(startMain);
     }
 
+    void saveRunningState(boolean state)
+    {
+        editor.putBoolean(getString(R.string.is_running), state);
+        editor.apply();
+    }
+
     public void cancelRide(View view)
     {
+        saveRunningState(false);
         request.put("status", "cancelled");
         request.saveInBackground(new SaveCallback() {
             @Override
@@ -465,8 +485,6 @@ public class RideActivity extends AppCompatActivity {
 
 
     void getRequestData() {
-        Intent intent = getIntent();
-        final String requestId = intent.getStringExtra("requestId");
         ParseQuery<ParseObject> query = new ParseQuery<>("Request");
         query.whereEqualTo("objectId", requestId);
         query.getInBackground(requestId, new GetCallback<ParseObject>() {
@@ -479,10 +497,11 @@ public class RideActivity extends AppCompatActivity {
                 request = object;
                 sendMyLocation();
                 //getUserData(request.getString("username"));
+                if(!isOldTrip)
                 notifyCustomer(0, ParseUser.getCurrentUser().getUsername());
                 initializeButtonClickListeners();
                 displayData();
-                if(isRunning)
+                if(isOldTrip)
                 updateRideState();
             }
 
@@ -493,11 +512,14 @@ public class RideActivity extends AppCompatActivity {
         String statusLocal = request.getString("status");
         switch (statusLocal)
         {
-            case "assigned":  status = Status.ASSIGNED;break;
+            case "assigned":  status = Status.ASSIGNED;
+            notifyCustomer(0, ParseUser.getCurrentUser().getUsername());break;
             case "arrived": setArrivedStatus();break;
             case "started": setStartStatus();break;
             case "finished": saveNoRunningRide();
                 finish(); break;
+            case "cancelled": saveNoRunningRide(); showToast("Ride has been cancelled by the customer");
+                                finish();
         }
     }
 

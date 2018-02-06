@@ -18,14 +18,14 @@
 
     <android.support.v7.widget.CardView
         android:id="@+id/cardView3"
-        android:layout_width="344dp"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/ride_status">
+        app:layout_constraintTop_toBottomOf="@+id/ride_status_text">
 
         <android.support.constraint.ConstraintLayout
             android:layout_width="match_parent"
@@ -92,11 +92,12 @@
         android:layout_marginEnd="8dp"
         android:layout_marginStart="112dp"
         android:clickable="true"
+        android:tint="@color/colorAccent"
         app:backgroundTint="@android:color/holo_orange_dark"
         app:layout_constraintBottom_toTopOf="@+id/start_ride"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="@+id/guideline"
-        app:srcCompat="@android:drawable/btn_star_big_on" />
+        app:srcCompat="@drawable/ic_navigation_black_24dp" />
 
     <Button
         android:id="@+id/start_ride"
@@ -191,13 +192,13 @@
     </android.support.v7.widget.CardView>
 
     <TextView
-        android:id="@+id/ride_status"
+        android:id="@+id/ride_status_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="64dp"
-        android:text="Ride in Progress"
+        android:text="Going to pickup location"
         android:textColor="#000000"
         android:textSize="24sp"
         app:layout_constraintEnd_toEndOf="parent"

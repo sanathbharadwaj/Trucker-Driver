@@ -1,6 +1,7 @@
 package com.harsha.truckerdriver;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
@@ -70,7 +71,6 @@ public class MainActivity extends AppCompatActivity {
     private TextView timeLeft;
     private DrawerLayout mDrawerLayout;
     private ActionBarDrawerToggle mToggle;
-    private Toolbar mToolbar;
     NavigationView navigationView;
     boolean popupExists = false;
     ParseObject driver;
@@ -103,12 +103,13 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         checkForCurrentTrip();
+        if(MainActivity.this.isFinishing()) return;
         noDataLoading = true;
         loadDriverData();
         initializeLocationService();
         registerReceiver();
-        checkIfFromNotification();
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        checkIfFromNotification();
         checkForNewVersion();
         initializeNavigationDrawer();
 
@@ -119,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
 
     void initializeNavigationDrawer()
     {
-        mToolbar = (Toolbar) findViewById(R.id.nav_action_bar);
+        Toolbar mToolbar = (Toolbar) findViewById(R.id.nav_action_bar);
         setSupportActionBar(mToolbar);
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         mToggle = new ActionBarDrawerToggle(this, mDrawerLayout, R.string.open, R.string.close);
@@ -142,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
                         Intent h1 = new Intent(MainActivity.this, ProfileActivity.class);
                         startActivity(h1);
                         mDrawerLayout.closeDrawers();
-                        break;////////////
+                        break;
 
 
                     case R.id.past_trips:
@@ -258,8 +259,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void checkForCurrentTrip() {
-        SharedPreferences prefs = getSharedPreferences("com.harsha.trucker", MODE_PRIVATE);
-        if (prefs.getBoolean("isRunning", false)) {
+        SharedPreferences prefs = getSharedPreferences(getString(R.string.package_name), MODE_PRIVATE);
+        if (prefs.getBoolean(getString(R.string.is_running), false)) {
             loadActivityAndFinish(this, RideActivity.class);
         }
     }
@@ -409,11 +410,10 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
                 driver = objects.get(0);
-                driver.put("isAvailable", false);
+                driver.put("isAvailable", true);
                 driver.saveInBackground(new SaveCallback() {
                     @Override
                     public void done(ParseException e) {
-                      showToast("here");
                     }
                 });
                 saveInstallation();
@@ -443,6 +443,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void onGoOffline(View view)
     {
+        TextView onlineStatusText = findViewById(R.id.online_textview);
         if(driver==null) return;
         Button button = findViewById(view.getId());
         if(driver.getBoolean("isAvailable"))
@@ -450,12 +451,16 @@ public class MainActivity extends AppCompatActivity {
             driver.put("isAvailable", false);
             button.setText(R.string.go_online);
             button.setBackgroundColor(getResources().getColor(R.color.green));
+            onlineStatusText.setTextColor(getResources().getColor(R.color.red));
+            onlineStatusText.setText(R.string.offline);
         }
         else
         {
             driver.put("isAvailable", true);
             button.setText(R.string.go_offline);
             button.setBackgroundColor(getResources().getColor(R.color.red));
+            onlineStatusText.setTextColor(getResources().getColor(R.color.online_status));
+            onlineStatusText.setText(R.string.online);
         }
         driver.saveEventually();
     }
@@ -479,7 +484,10 @@ public class MainActivity extends AppCompatActivity {
         getTextView(R.id.car_details).setText(driver.getString("vehicleName") + "|" + driver.getString("vehicleNumber"));
         getTextView(R.id.profile_text).setText(ParseUser.getCurrentUser().getString("name"));
         getTextView(R.id.phone_text).setText(ParseUser.getCurrentUser().getString("phone"));
-
+        Double rating = (Double) driver.getNumber("rating");
+        if(rating== null) rating = 0.0;
+        double valueRounded = Math.round(rating * 10D) / 10D;
+        getTextView(R.id.rating_value).setText(Double.toString(valueRounded));
 
 
         getDriverImage();
@@ -568,7 +576,8 @@ public class MainActivity extends AppCompatActivity {
 
         // create the popup window
         int width = ViewGroup.LayoutParams.MATCH_PARENT;
-        int height = ViewGroup.LayoutParams.WRAP_CONTENT;;
+        int height = ViewGroup.LayoutParams.WRAP_CONTENT + 1000;
+        //int height = 350;
         popupWindow = new PopupWindow(popupView, width, height, true);
 
         // show the popup window

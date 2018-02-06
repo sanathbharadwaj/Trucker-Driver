@@ -6,7 +6,6 @@
 
     <string name="open">Open</string>
     <string name="close">Close</string>
-
     <string name="aboutusContent">
         "A material metaphor is the unifying theory of a rationalized space and a system of motion."
         "The material is grounded in tactile reality, inspired by the study of paper and ink, yet "
@@ -24,4 +23,7 @@
     </string>
     <string name="is_running">isRunning</string>
     <string name="package_name">com.harsha.truckerdriver</string>
+    <string name="offline">Offline</string>
+    <string name="online">Online</string>
+    <string name="arrived_status_text">Arrived at pickup location</string>
 </resources>

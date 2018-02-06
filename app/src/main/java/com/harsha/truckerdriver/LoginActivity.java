@@ -40,13 +40,7 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
-        /*ParseUser user = ParseUser.getCurrentUser();
-        if(user!=null)
-            loadToMapsActivity();*/
-        /*if (ParseUser.getCurrentUser()!=null){
-            loadToMapsActivity();
-        }*/
-        checkForCurrentTrip();
+       // checkForCurrentTrip();
 
 
 

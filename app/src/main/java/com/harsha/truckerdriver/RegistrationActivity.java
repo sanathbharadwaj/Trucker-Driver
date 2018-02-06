@@ -60,8 +60,8 @@ public class RegistrationActivity extends AppCompatActivity {
             loadToMainActivity();//
         }*/
 
-        /*if(ParseUser.getCurrentUser() != null)
-            loadToMainActivity();*/
+        if(ParseUser.getCurrentUser() != null)
+            loadToMainActivity();
         mToolbar = (Toolbar) findViewById(R.id.nav_action_bar);
         setSupportActionBar(mToolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -207,6 +207,7 @@ public class RegistrationActivity extends AppCompatActivity {
         object.put("vehicleNumber", getEditText(R.id.vehicle_number).getText().toString());
         object.put("accountNumber", getEditText(R.id.account_number).getText().toString());
         object.put("profilePic", file);
+        object.put("isAvailable", true);
         object.saveInBackground(new SaveCallback() {
             @Override
             public void done(ParseException e) {
